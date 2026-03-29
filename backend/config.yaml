@@ -1,0 +1,18 @@
+server:
+  port: 8080
+  mode: debug # debug | release
+
+database:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: root
+  name: goledger
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300 # seconds
+
+jwt:
+  secret: "change-me-in-production-use-a-long-random-string"
+  expire_hours: 168 # 7 days
+
