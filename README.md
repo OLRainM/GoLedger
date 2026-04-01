@@ -174,26 +174,165 @@ Docker Compose 部署时，数据库 host 会被环境变量 `DATABASE_HOST=mysq
 
 ---
 
-## 架构分层
+## 架构与设计
 
-```
-┌─────────────────────────────────────────────┐
-│                 Flutter App                  │
-│  Pages → Providers → Services → ApiClient   │
-└──────────────────┬──────────────────────────┘
-                   │ HTTP (JSON)
-┌──────────────────▼──────────────────────────┐
-│                 Go Backend                   │
-│  Handler → Service → Repository → Model     │
-│         ↕ Middleware (Auth/Logger/CORS)      │
-└──────────────────┬──────────────────────────┘
-                   │ SQL
-┌──────────────────▼──────────────────────────┐
-│               MySQL 8.0                      │
-└─────────────────────────────────────────────┘
+### 系统组件架构图
+
+展示 Flutter 客户端（绿色）→ Go 后端（蓝色）→ MySQL（橙色）的完整分层与组件关系。所有数据库操作封装在 Repository 层，业务逻辑不直接接触 SQL，方便未来替换查询方案。
+
+```mermaid
+graph TB
+    subgraph Client["📱 Flutter 客户端"]
+        direction TB
+        subgraph Pages["Pages 页面层"]
+            LP["🔐 LoginPage<br/>RegisterPage"]
+            HP["🏠 HomePage"]
+            AP["💰 AccountListPage<br/>AccountFormPage"]
+            CP["🏷️ CategoryListPage<br/>CategoryFormPage"]
+            TP["📝 TransactionListPage<br/>TransactionDetailPage<br/>TransactionFormPage"]
+        end
+
+        subgraph Providers["Providers 状态管理"]
+            AuthP["AuthProvider<br/><i>登录态 + Token</i>"]
+            AccP["AccountProvider<br/><i>账户列表</i>"]
+            CatP["CategoryProvider<br/><i>分类列表</i>"]
+            TxP["TransactionProvider<br/><i>流水列表 + 分页</i>"]
+            StP["StatsProvider<br/><i>月度统计</i>"]
+        end
+
+        subgraph Services["Services API 服务层"]
+            AS["AuthService"]
+            AcS["AccountService"]
+            CaS["CategoryService"]
+            TxS["TransactionService"]
+            StS["StatsService"]
+        end
+
+        subgraph Core["Core 核心"]
+            DIO["Dio + Auth 拦截器"]
+            TS["TokenStorage<br/><i>SharedPreferences</i>"]
+            RT["GoRouter<br/><i>路由守卫</i>"]
+        end
+
+        Pages --> Providers
+        Providers --> Services
+        Services --> DIO
+        DIO --> TS
+        RT --> TS
+    end
+
+    subgraph Server["⚙️ Go 后端  :8080"]
+        direction TB
+        subgraph Middleware["Middleware 中间件"]
+            CORS["CORS"]
+            LOG["Logger<br/><i>Zap</i>"]
+            AUTH["Auth<br/><i>JWT 校验</i>"]
+        end
+
+        subgraph Handlers["Handlers 路由处理"]
+            AH["AuthHandler<br/><i>register / login</i>"]
+            AcH["AccountHandler<br/><i>create / list / update</i>"]
+            CaH["CategoryHandler<br/><i>create / list / update</i>"]
+            TxH["TransactionHandler<br/><i>CRUD + 软删除</i>"]
+            StH["StatsHandler<br/><i>monthly</i>"]
+        end
+
+        subgraph Svc["Services 业务逻辑"]
+            ASvc["AuthService"]
+            AcSvc["AccountService"]
+            CaSvc["CategoryService"]
+            TxSvc["TransactionService<br/><i>事务 + 乐观锁</i>"]
+            StSvc["StatsService"]
+        end
+
+        subgraph Repo["Repositories 数据访问"]
+            UR["UserRepo"]
+            AR["AccountRepo"]
+            CR["CategoryRepo"]
+            TR["TransactionRepo"]
+        end
+
+        Middleware --> Handlers
+        Handlers --> Svc
+        Svc --> Repo
+    end
+
+    subgraph Database["🗄️ MySQL 8.0"]
+        U["users"]
+        A["accounts"]
+        C["categories"]
+        T["transactions"]
+    end
+
+    DIO -- "HTTP/JSON<br/>14 个 RESTful API" --> CORS
+    Repo --> Database
 ```
 
-所有数据库操作封装在 Repository 层，业务逻辑不直接接触 SQL，方便未来替换查询方案。
+### 核心时序图 — 创建流水
+
+展示系统最核心的业务流程：用户记一笔账时，数据如何在前后端各层之间流转，包括 JWT 鉴权、数据库事务、乐观锁冲突处理等关键路径。
+
+```mermaid
+sequenceDiagram
+    actor User as 用户
+    participant Page as Flutter Page
+    participant Provider as Riverpod Provider
+    participant Service as API Service
+    participant Dio as Dio (HTTP)
+    participant MW as Auth Middleware
+    participant Handler as TransactionHandler
+    participant Svc as TransactionService
+    participant TxRepo as TransactionRepo
+    participant AccRepo as AccountRepo
+    participant DB as MySQL
+
+    User->>Page: 填写金额/分类/账户，点击"记账"
+    Page->>Provider: create(accountId, categoryId, amount, type, ...)
+    Provider->>Service: TransactionService.create(body)
+    Service->>Dio: POST /api/v1/transactions
+    Note over Dio: 拦截器自动附加<br/>Authorization: Bearer {token}
+    Dio->>MW: HTTP Request
+
+    MW->>MW: 解析 JWT，校验签名与有效期
+    alt Token 无效/过期
+        MW-->>Dio: 401 Unauthorized
+        Dio-->>Service: DioException(401)
+        Service-->>Provider: ApiResponse(code: 40101)
+        Provider-->>Page: 失败
+        Page-->>User: SnackBar "登录已过期"
+    end
+    MW->>Handler: 注入 userID 到 Context
+
+    Handler->>Handler: 参数校验 (amount > 0, type ∈ {income, expense})
+    Handler->>Svc: Create(userID, req)
+
+    rect rgb(240, 248, 255)
+        Note over Svc,DB: 数据库事务 BEGIN
+        Svc->>TxRepo: Insert(transaction)
+        TxRepo->>DB: INSERT INTO transactions (...)
+        DB-->>TxRepo: OK, id=42
+
+        Svc->>AccRepo: UpdateBalance(accountId, ±amount, currentVersion)
+        AccRepo->>DB: UPDATE accounts SET balance = balance ± amount,<br/>version = version + 1<br/>WHERE id = ? AND user_id = ? AND version = ?
+        DB-->>AccRepo: affected rows
+
+        alt affected rows = 0
+            Note over Svc,DB: ROLLBACK
+            Svc-->>Handler: ErrConflict (乐观锁冲突)
+            Handler-->>Dio: 409 Conflict
+        else affected rows = 1
+            Note over Svc,DB: COMMIT
+            Svc-->>Handler: transaction data
+        end
+    end
+
+    Handler-->>Dio: 200 {code: 0, data: {id: 42, balance: 150000}}
+    Dio-->>Service: Response
+    Service-->>Provider: ApiResponse(data)
+    Provider->>Provider: 刷新流水列表 + 统计
+    Provider-->>Page: 成功
+    Page-->>User: SnackBar "记账成功" → 返回上一页
+```
 
 ---
 
@@ -221,6 +360,140 @@ cd frontend && flutter run
 |------|------|
 | [`require.md`](./require.md) | 产品需求文档 |
 | [`api.md`](./api.md) | API 接口文档（含完整请求/响应示例） |
+
+---
+
+## 认证时序图 — 注册与登录
+
+展示用户注册（邮箱查重 → bcrypt 加密 → 创建默认分类）和登录（密码校验 → JWT 签发 → Token 本地持久化 → 路由跳转）的完整流程。
+
+```mermaid
+sequenceDiagram
+    actor User as 用户
+    participant LP as LoginPage
+    participant Auth as AuthProvider
+    participant AS as AuthService
+    participant Dio as Dio (HTTP)
+    participant H as AuthHandler
+    participant S as AuthService (Go)
+    participant R as UserRepo
+    participant DB as MySQL
+
+    Note over User,DB: 注册流程
+    User->>LP: 输入邮箱 + 密码 + 昵称，点击注册
+    LP->>Auth: register(email, password, nickname)
+    Auth->>AS: AuthService.register(body)
+    AS->>Dio: POST /api/v1/auth/register
+    Dio->>H: HTTP Request (无需鉴权)
+    H->>H: 参数校验 (邮箱格式, 密码≥8位)
+    H->>S: Register(email, password, nickname)
+    S->>R: FindByEmail(email)
+    R->>DB: SELECT * FROM users WHERE email = ?
+    DB-->>R: nil (不存在)
+    S->>S: bcrypt.GenerateFromPassword(password)
+    S->>R: Create(user)
+    R->>DB: INSERT INTO users (email, password_hash, nickname, ...)
+    DB-->>R: OK, id=1
+    S->>S: 创建 14 个默认分类 (9 支出 + 5 收入)
+    S-->>H: user data
+    H-->>Dio: 200 {code: 0, data: {id: 1, email, nickname}}
+    Dio-->>AS: Response
+    AS-->>Auth: ApiResponse(data)
+    Auth-->>LP: 成功
+    LP-->>User: SnackBar "注册成功，请登录" → 跳转登录页
+
+    Note over User,DB: 登录流程
+    User->>LP: 输入邮箱 + 密码，点击登录
+    LP->>Auth: login(email, password)
+    Auth->>AS: AuthService.login(body)
+    AS->>Dio: POST /api/v1/auth/login
+    Dio->>H: HTTP Request
+    H->>S: Login(email, password)
+    S->>R: FindByEmail(email)
+    R->>DB: SELECT * FROM users WHERE email = ?
+    DB-->>R: user record
+    S->>S: bcrypt.CompareHashAndPassword()
+    alt 密码不匹配
+        S-->>H: ErrUnauthorized
+        H-->>Dio: 401 {code: 40101, message: "邮箱或密码错误"}
+        Dio-->>Auth: DioException
+        Auth-->>LP: 失败
+        LP-->>User: SnackBar "邮箱或密码错误"
+    end
+    S->>S: jwt.NewWithClaims(userID, exp=7d)
+    S-->>H: token + user
+    H-->>Dio: 200 {code: 0, data: {token: "eyJ...", user: {...}}}
+    Dio-->>AS: Response
+    AS-->>Auth: ApiResponse(data)
+    Auth->>Auth: TokenStorage.save(token)
+    Auth-->>LP: 成功, status = authenticated
+    LP-->>User: GoRouter redirect → 首页
+```
+
+---
+
+## 技术路线图
+
+从 V1-MVP 到 V4 的演进规划。
+
+```mermaid
+timeline
+    title GoLedger 技术路线图
+
+    section V1-MVP ✅ 当前
+        后端基础 : Go + Gin + gocraft/dbr v2
+                 : MySQL 8.0 + golang-migrate
+                 : JWT 认证 + bcrypt
+                 : Viper 配置 + Zap 日志
+        前端基础 : Flutter 3.32 + Dart 3.8
+                 : Dio + Riverpod + GoRouter
+                 : SharedPreferences Token
+                 : Material 3 主题 + 深色模式
+        核心功能 : 邮箱注册/登录
+                 : 账户管理 (现金/银行卡/电子钱包)
+                 : 分类管理 (14 系统 + 自定义)
+                 : 流水 CRUD + 乐观锁 + 软删除
+                 : 月度统计 (收入/支出/结余)
+        部署 : Docker + Docker Compose
+
+    section V1.1 体验优化
+        前端增强 : 流水日历视图
+                 : 下拉刷新动画优化
+                 : 本地输入缓存 (防丢失)
+                 : 多语言支持 (i18n)
+        后端增强 : 请求限流 (Rate Limit)
+                 : 接口参数更严格校验
+                 : Swagger/OpenAPI 文档自动生成
+        运维 : CI/CD (GitHub Actions)
+             : 自动化测试流水线
+             : Sealos Cloud / 自有服务器正式部署
+
+    section V2 数据洞察
+        统计升级 : 年度报表 + 趋势图表
+                 : 分类占比饼图
+                 : 多月对比折线图
+        前端图表 : fl_chart / syncfusion_flutter_charts
+        数据导出 : CSV / Excel 导出
+        预算功能 : 月度预算设定 + 超支预警
+
+    section V3 智能化
+        AI 记账 : 拍照识别小票 (OCR)
+               : 自然语言快速记账
+               : Python 微服务 (Tesseract/PaddleOCR)
+        离线模式 : SQLite 本地缓存
+                 : 上线后自动同步
+                 : 冲突检测与解决
+        推送通知 : FCM / APNs
+                 : 每日记账提醒 + 周报
+
+    section V4 多端协同
+        家庭账本 : 多用户共享账本
+                 : 权限管理 (管理员/成员)
+        Web 端 : Flutter Web 或 React 管理后台
+        性能优化 : Redis 缓存热点查询
+                 : gRPC 内部通信
+                 : 数据库读写分离
+```
 
 ---
 
