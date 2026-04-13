@@ -113,20 +113,20 @@ flutter run
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
-| POST | `/api/v1/auth/register` | 用户注册 | ✗ |
-| POST | `/api/v1/auth/login` | 用户登录 | ✗ |
-| POST | `/api/v1/accounts` | 创建账户 | ✓ |
-| GET | `/api/v1/accounts` | 账户列表 | ✓ |
-| PUT | `/api/v1/accounts/:id` | 修改账户 | ✓ |
-| POST | `/api/v1/categories` | 创建分类 | ✓ |
-| GET | `/api/v1/categories` | 分类列表 | ✓ |
-| PUT | `/api/v1/categories/:id` | 修改分类 | ✓ |
-| POST | `/api/v1/transactions` | 创建流水 | ✓ |
-| GET | `/api/v1/transactions` | 流水列表（分页） | ✓ |
-| GET | `/api/v1/transactions/:id` | 流水详情 | ✓ |
-| PUT | `/api/v1/transactions/:id` | 修改流水 | ✓ |
-| DELETE | `/api/v1/transactions/:id` | 删除流水（软删除） | ✓ |
-| GET | `/api/v1/stats/monthly` | 月度统计 | ✓ |
+| POST | `/api/auth/register` | 用户注册 | ✗ |
+| POST | `/api/auth/login` | 用户登录 | ✗ |
+| POST | `/api/accounts` | 创建账户 | ✓ |
+| GET | `/api/accounts` | 账户列表 | ✓ |
+| PUT | `/api/accounts/:id` | 修改账户 | ✓ |
+| POST | `/api/categories` | 创建分类 | ✓ |
+| GET | `/api/categories` | 分类列表 | ✓ |
+| PUT | `/api/categories/:id` | 修改分类 | ✓ |
+| POST | `/api/transactions` | 创建流水 | ✓ |
+| GET | `/api/transactions` | 流水列表（分页） | ✓ |
+| GET | `/api/transactions/:id` | 流水详情 | ✓ |
+| PUT | `/api/transactions/:id` | 修改流水 | ✓ |
+| DELETE | `/api/transactions/:id` | 删除流水（软删除） | ✓ |
+| GET | `/api/stats/monthly` | 月度统计 | ✓ |
 
 
 ## 数据库设计
@@ -289,7 +289,7 @@ sequenceDiagram
     User->>Page: 填写金额/分类/账户，点击"记账"
     Page->>Provider: create(accountId, categoryId, amount, type, ...)
     Provider->>Service: TransactionService.create(body)
-    Service->>Dio: POST /api/v1/transactions
+    Service->>Dio: POST /api/transactions
     Note over Dio: 拦截器自动附加<br/>Authorization: Bearer {token}
     Dio->>MW: HTTP Request
 
@@ -383,7 +383,7 @@ sequenceDiagram
     User->>LP: 输入邮箱 + 密码 + 昵称，点击注册
     LP->>Auth: register(email, password, nickname)
     Auth->>AS: AuthService.register(body)
-    AS->>Dio: POST /api/v1/auth/register
+    AS->>Dio: POST /api/auth/register
     Dio->>H: HTTP Request (无需鉴权)
     H->>H: 参数校验 (邮箱格式, 密码≥8位)
     H->>S: Register(email, password, nickname)
@@ -406,7 +406,7 @@ sequenceDiagram
     User->>LP: 输入邮箱 + 密码，点击登录
     LP->>Auth: login(email, password)
     Auth->>AS: AuthService.login(body)
-    AS->>Dio: POST /api/v1/auth/login
+    AS->>Dio: POST /api/auth/login
     Dio->>H: HTTP Request
     H->>S: Login(email, password)
     S->>R: FindByEmail(email)
