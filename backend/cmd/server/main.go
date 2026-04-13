@@ -7,12 +7,9 @@ import (
 
 	"github.com/GoLedger/backend/internal/config"
 	"github.com/GoLedger/backend/internal/handler"
-	"github.com/GoLedger/backend/internal/middleware"
 	jwtPkg "github.com/GoLedger/backend/internal/pkg/jwt"
-	"github.com/GoLedger/backend/internal/pkg/response"
 	"github.com/GoLedger/backend/internal/repository"
 	"github.com/GoLedger/backend/internal/service"
-	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gocraft/dbr/v2"
 	"go.uber.org/zap"
@@ -75,56 +72,11 @@ func main() {
 	txnHandler := handler.NewTransactionHandler(txnService)
 	statsHandler := handler.NewStatsHandler(statsService)
 
-	// 8. Setup Gin
-	gin.SetMode(cfg.Server.Mode)
-	r := gin.New()
-	r.Use(middleware.CORS())
-	r.Use(middleware.Logger(logger))
-	r.Use(gin.Recovery())
-
-	// Health check
-	r.GET("/health", func(c *gin.Context) {
-		response.OK(c, gin.H{"status": "ok"})
-	})
-
-	// Public routes
-	auth := r.Group("/api/auth")
-	{
-		auth.POST("/register", authHandler.Register)
-		auth.POST("/login", authHandler.Login)
-	}
-
-	// Protected routes
-	api := r.Group("/api", middleware.Auth())
-	{
-		accounts := api.Group("/accounts")
-		{
-			accounts.POST("", accountHandler.Create)
-			accounts.GET("", accountHandler.List)
-			accounts.PUT("/:id", accountHandler.Update)
-		}
-
-		categories := api.Group("/categories")
-		{
-			categories.POST("", categoryHandler.Create)
-			categories.GET("", categoryHandler.List)
-			categories.PUT("/:id", categoryHandler.Update)
-		}
-
-		transactions := api.Group("/transactions")
-		{
-			transactions.POST("", txnHandler.Create)
-			transactions.GET("", txnHandler.List)
-			transactions.GET("/:id", txnHandler.GetByID)
-			transactions.PUT("/:id", txnHandler.Update)
-			transactions.DELETE("/:id", txnHandler.Delete)
-		}
-
-		stats := api.Group("/stats")
-		{
-			stats.GET("/monthly", statsHandler.MonthlySummary)
-		}
-	}
+	// 8. Setup router (路由定义见 router.go)
+	r := setupRouter(
+		cfg.Server.Mode, logger,
+		authHandler, accountHandler, categoryHandler, txnHandler, statsHandler,
+	)
 
 	// 9. Start server
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
