@@ -3,8 +3,13 @@
 class AppConstants {
   AppConstants._();
 
-  /// 后端 API 基础地址 (开发环境)
-  static const String baseUrl = 'http://10.0.2.2:8080';
+  /// 后端 API 基础地址
+  /// 通过编译参数注入: flutter run --dart-define=BASE_URL=http://your-server:8080
+  /// 未传参时默认使用 Android 模拟器回环地址
+  static const String baseUrl = String.fromEnvironment(
+    'BASE_URL',
+    defaultValue: 'http://10.0.2.2:8080',
+  );
 
   /// Token 在 SharedPreferences 中的 key
   static const String tokenKey = 'auth_token';
