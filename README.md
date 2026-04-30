@@ -92,18 +92,19 @@ cd backend
 docker compose up -d
 ```
 
-服务启动后，API 监听在 `http://localhost:8080`。MySQL 数据库会自动初始化并运行迁移脚本。
+服务启动后，API 监听在 `http://115.190.125.177:8080`。MySQL 数据库会自动初始化并运行迁移脚本。
 
 ### 2. 运行前端
 
 ```bash
 cd frontend
 flutter pub get
-flutter run
+# 连接服务器（替换为你的实际地址）
+flutter run --dart-define=BASE_URL=http://115.190.125.177:8080
 ```
 
-> 前端默认连接 `http://10.0.2.2:8080`（Android 模拟器代理到宿主机 localhost）。
-> 如需修改，编辑 `frontend/lib/core/constants.dart` 中的 `baseUrl`。
+> 前端通过 `--dart-define=BASE_URL=...` 在编译时注入后端地址。
+> 不传参时默认使用 `http://10.0.2.2:8080`（Android 模拟器代理到宿主机）。
 
 ---
 

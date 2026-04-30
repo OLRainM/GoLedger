@@ -1,6 +1,6 @@
 # GoLedger V1 API 接口文档
 
-> 基础地址: `http://localhost:8080`
+> 基础地址: `http://115.190.125.177:8080`
 >
 > 所有请求和响应均使用 JSON 格式. 需要鉴权的接口必须在请求头中携带 `Authorization: Bearer {token}`.
 >
@@ -107,7 +107,7 @@ Token 有效期 7 天. 过期后需要重新登录获取.
 
 ```http
 POST /api/auth/register HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 
 {
@@ -161,7 +161,7 @@ Content-Type: application/json
 
 ```http
 POST /api/auth/login HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 
 {
@@ -229,7 +229,7 @@ Content-Type: application/json
 
 ```http
 POST /api/accounts HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGci...
 
@@ -316,7 +316,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/accounts HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -391,7 +391,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 PUT /api/accounts/1 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGci...
 
@@ -404,7 +404,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 PUT /api/accounts/2 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGci...
 
@@ -472,7 +472,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 POST /api/categories HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGci...
 
@@ -548,7 +548,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/categories HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -556,7 +556,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/categories?type=expense HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -636,7 +636,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 PUT /api/categories/15 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGci...
 
@@ -706,7 +706,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 POST /api/transactions HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGci...
 
@@ -793,7 +793,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/transactions?page=1&page_size=20&type=expense&start_date=2024-01-01&end_date=2024-01-31 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -801,7 +801,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/transactions?account_id=1&page=1&page_size=10 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -889,7 +889,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/transactions/101 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -967,7 +967,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 PUT /api/transactions/101 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Content-Type: application/json
 Authorization: Bearer eyJhbGci...
 
@@ -1030,7 +1030,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 DELETE /api/transactions/101?version=1 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -1090,7 +1090,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/stats/monthly?year=2024&month=1 HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
@@ -1098,7 +1098,7 @@ Authorization: Bearer eyJhbGci...
 
 ```http
 GET /api/stats/monthly HTTP/1.1
-Host: localhost:8080
+Host: 115.190.125.177:8080
 Authorization: Bearer eyJhbGci...
 ```
 
