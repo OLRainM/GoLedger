@@ -1,18 +1,21 @@
 package service
 
 import (
+	"strings"
+
 	"github.com/GoLedger/backend/internal/model"
 	"github.com/GoLedger/backend/internal/pkg/errs"
 	"github.com/GoLedger/backend/internal/pkg/jwt"
 	"github.com/GoLedger/backend/internal/repository"
+	"github.com/go-sql-driver/mysql"
 	"github.com/gocraft/dbr/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
-	userRepo    *repository.UserRepo
+	userRepo     *repository.UserRepo
 	categoryRepo *repository.CategoryRepo
-	sess        *dbr.Session
+	sess         *dbr.Session
 }
 
 func NewAuthService(userRepo *repository.UserRepo, categoryRepo *repository.CategoryRepo, sess *dbr.Session) *AuthService {
@@ -21,8 +24,8 @@ func NewAuthService(userRepo *repository.UserRepo, categoryRepo *repository.Cate
 
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-	Nickname string `json:"nickname"`
+	Password string `json:"password" binding:"required,min=8,max=128"`
+	Nickname string `json:"nickname" binding:"max=50"`
 }
 
 type RegisterResponse struct {
@@ -67,6 +70,10 @@ func (s *AuthService) Register(req *RegisterRequest) (*RegisterResponse, error) 
 		Values(user.Email, user.PasswordHash, user.Nickname).
 		Exec()
 	if err != nil {
+		// 捕获唯一约束冲突（并发注册同一邮箱）
+		if isDuplicateKeyError(err) {
+			return nil, errs.New(errs.ErrUnprocessable, "该邮箱已被注册")
+		}
 		return nil, err
 	}
 	id, _ := result.LastInsertId()
@@ -123,3 +130,13 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	}, nil
 }
 
+// isDuplicateKeyError 检查是否为 MySQL 唯一约束冲突错误
+func isDuplicateKeyError(err error) bool {
+	if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+		// 1062 = ER_DUP_ENTRY (Duplicate entry for key)
+		return mysqlErr.Number == 1062
+	}
+	// 兼容其他驱动或包装错误
+	return strings.Contains(err.Error(), "Duplicate entry") ||
+		strings.Contains(err.Error(), "duplicate key")
+}
