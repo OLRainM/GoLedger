@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/storage/token_storage.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -16,6 +17,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+  bool _remember = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 恢复已保存的凭证
+    _remember = TokenStorage.isRememberPassword();
+    if (_remember) {
+      _emailCtrl.text = TokenStorage.getSavedEmail() ?? '';
+      _passwordCtrl.text = TokenStorage.getSavedPassword() ?? '';
+    }
+  }
 
   @override
   void dispose() {
@@ -27,13 +40,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
-    final ok = await ref.read(authStateProvider.notifier).login(
-          _emailCtrl.text.trim(),
-          _passwordCtrl.text,
-        );
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    final ok = await ref.read(authStateProvider.notifier).login(email, password);
     if (!mounted) return;
     setState(() => _loading = false);
     if (ok) {
+      // 登录成功后根据勾选状态保存/清除凭证
+      if (_remember) {
+        await TokenStorage.saveCredentials(email, password);
+      } else {
+        await TokenStorage.clearCredentials();
+      }
+      if (!mounted) return;
       context.go('/');
     } else {
       final err = ref.read(authStateProvider).errorMessage ?? '登录失败';
@@ -94,7 +113,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+                  // ── 记住密码 ──
+                  Row(
+                    children: [
+                      SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: Checkbox(
+                          value: _remember,
+                          onChanged: (v) =>
+                              setState(() => _remember = v ?? false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _remember = !_remember),
+                        child: const Text('记住密码'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     height: 48,

@@ -8,11 +8,16 @@ class AppConstants {
   /// 未传参时默认使用 Android 模拟器回环地址
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
-    defaultValue: 'http://10.0.2.2:8080',
+    defaultValue: 'http://www.olraingin.com:8080',
   );
 
   /// Token 在 SharedPreferences 中的 key
   static const String tokenKey = 'auth_token';
+
+  /// 记住密码 - SharedPreferences keys
+  static const String rememberKey = 'remember_password';
+  static const String savedEmailKey = 'saved_email';
+  static const String savedPasswordKey = 'saved_password';
 
   /// 连接超时 (毫秒)
   static const int connectTimeout = 10000;
