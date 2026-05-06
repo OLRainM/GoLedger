@@ -58,5 +58,22 @@ class TokenStorage {
   static String? getSavedPassword() {
     return _prefs?.getString(AppConstants.savedPasswordKey);
   }
+
+  // ────────── 服务器地址缓存 ──────────
+
+  /// 保存当前可用的服务器地址
+  static Future<void> saveCurrentServerUrl(String url) async {
+    await _prefs?.setString(AppConstants.currentServerKey, url);
+  }
+
+  /// 获取缓存的服务器地址
+  static String? getCurrentServerUrl() {
+    return _prefs?.getString(AppConstants.currentServerKey);
+  }
+
+  /// 清除服务器地址缓存（恢复默认）
+  static Future<void> clearCurrentServerUrl() async {
+    await _prefs?.remove(AppConstants.currentServerKey);
+  }
 }
 

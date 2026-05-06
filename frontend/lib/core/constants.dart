@@ -3,16 +3,25 @@
 class AppConstants {
   AppConstants._();
 
-  /// 后端 API 基础地址
+  /// 后端 API 基础地址（主地址）
   /// 通过编译参数注入: flutter run --dart-define=BASE_URL=http://your-server:8080
-  /// 未传参时默认使用 Android 模拟器回环地址
+  /// 未传参时默认使用域名
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
     defaultValue: 'http://www.olraingin.com:8080',
   );
 
+  /// 备用服务器地址列表（域名失败时自动降级）
+  static const List<String> fallbackUrls = [
+    'http://115.190.125.177:8080', // IP 直连
+    'http://10.0.2.2:8080',        // Android 模拟器回环（开发用）
+  ];
+
   /// Token 在 SharedPreferences 中的 key
   static const String tokenKey = 'auth_token';
+
+  /// 当前可用服务器地址缓存 key
+  static const String currentServerKey = 'current_server_url';
 
   /// 记住密码 - SharedPreferences keys
   static const String rememberKey = 'remember_password';
