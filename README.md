@@ -65,14 +65,14 @@ GoLedger/
 │   ├── Dockerfile
 │   └── docker-compose.yml
 ├── frontend/
-│   └── lib/
-│       ├── core/            # 常量 / Dio 封装 / Token 存储 / 路由
-│       ├── models/          # 数据模型（5 个）
-│       ├── services/        # API 服务层（5 个，对接 14 个接口）
-│       ├── providers/       # Riverpod 状态管理（5 个）
-│       └── pages/           # UI 页面（10 个）
-├── api.md                   # 完整 API 文档（14 个接口）
-└── require.md               # 产品需求文档
+│   ├── lib/
+│   │   ├── core/            # 常量 / Dio 封装 / Token 存储 / 路由
+│   │   ├── models/          # 数据模型（5 个）
+│   │   ├── services/        # API 服务层（5 个，对接 14 个接口）
+│   │   ├── providers/       # Riverpod 状态管理（5 个）
+│   │   └── pages/           # UI 页面（10 个）
+│   └── android/             # 仅保留 Android 平台（其余平台已移除）
+└── README.md                # 项目说明文档
 ```
 
 ---
@@ -108,7 +108,7 @@ flutter run --dart-define=BASE_URL=http://www.olraingin.com:8080
 
 ## API 概览
 
-共 **14 个接口**，完整文档见 [`api.md`](./api.md)。
+共 **14 个接口**（完整接口文档由团队内部维护，未公开）。
 
 | 方法 | 路径 | 说明 | 认证 |
 |------|------|------|------|
@@ -341,21 +341,12 @@ cd backend && go build ./...
 # 前端静态分析
 cd frontend && flutter analyze
 
-# 前端运行（Chrome）
-cd frontend && flutter run -d chrome
-
-# 前端运行（Android 模拟器）
+# 前端运行（Android 设备 / 模拟器）
 cd frontend && flutter run
+
+# 构建 Android Release APK
+cd frontend && flutter build apk --release
 ```
-
----
-
-## 文档
-
-| 文件 | 说明 |
-|------|------|
-| [`require.md`](./require.md) | 产品需求文档 |
-| [`api.md`](./api.md) | API 接口文档（含完整请求/响应示例） |
 
 ---
 

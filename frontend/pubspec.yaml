@@ -1,5 +1,5 @@
 name: goledger
-description: "GoLedger - 智能跨平台记账系统"
+description: "GoLedger - 智能记账系统（Android）"
 publish_to: 'none'
 version: 1.0.0+1
 
