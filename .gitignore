@@ -1,25 +1,12 @@
 ﻿# ========================================
-# 敏感文档 - 包含服务器 IP、配置等信息，不上传
+# 敏感文档 - 整个 docs/ 目录不上传
 # ========================================
-api.md
-require-v1.1.md
-ui-design.md
-CICD*.md
-Jenkins*.md
-Linux*.md
-后续模块划分与分工.md
-第一次测试结果以及使用建议.md
-V2.0版本任务书.md
-准备工作完成总结.md
-快速开始手册.md
-scripts/
+docs/
 
-# Flutter 平台（仅保留 Android）
-frontend/ios/
-frontend/linux/
-frontend/macos/
-frontend/web/
-frontend/windows/
+# Flutter 构建产物与日志
+frontend/build/
+flutter_build_log.txt
+frontend/android/build_log.txt
 
 # Binaries
 *.exe
@@ -40,9 +27,3 @@ Thumbs.db
 
 # Environment
 .env
-
-# Local only
-task.md
-
-flutter_build_log.txt
-frontend/android/build_log.txt
